@@ -28,7 +28,7 @@ extension DataBatch: Collatable {
 }
 
 /// Initialize an `DataBatch` dataset from a CSV file.
-func loadIrisDatasetFromCSV (
+func loadDatasetFromCSV (
         contentsOf: String, hasHeader: Bool, featureColumns: [Int], labelColumns: [Int]) -> [DataBatch] {
     let np = Python.import("numpy")
 
@@ -60,11 +60,13 @@ func loadIrisDatasetFromCSV (
 
 }
 
-// our IrisModel
-struct IrisModel: Layer {
-    var layer1 = Dense<Float>(inputSize: 4, outputSize: hiddenSize, activation: relu)
-    var layer2 = Dense<Float>(inputSize: hiddenSize, outputSize: hiddenSize, activation: relu)
-    var layer3 = Dense<Float>(inputSize: hiddenSize, outputSize: 3)
+// TFModel provides TensorFlow model we'll use for training
+// the model has three layers
+// (4, 10, relu) -> (10, 10, relu) -> (10, 3)
+struct TFModel: Layer {
+    var layer1 = Dense<Float>(inputSize: 4, outputSize: 10, activation: relu)
+    var layer2 = Dense<Float>(inputSize: 10, outputSize: 10, activation: relu)
+    var layer3 = Dense<Float>(inputSize: 10, outputSize: 3)
 
     @differentiable
     func callAsFunction(_ input: Tensor<Float>) -> Tensor<Float> {
@@ -72,3 +74,42 @@ struct IrisModel: Layer {
     }
 }
 
+// saving layer protocol weights, see
+// https://gist.github.com/kongzii/62b9d978a6536bb97095ed3fb74e30fd
+extension Layer {
+    mutating public func loadWeights(numpyFile: String) {
+        print("loading weights from: \(numpyFile).npy")
+        let np = Python.import("numpy")
+        let weights = np.load(numpyFile+".npy", allow_pickle: true)
+
+        for (index, kp) in self.recursivelyAllWritableKeyPaths(to:  Tensor<Float>.self).enumerated() {
+            self[keyPath: kp] = Tensor<Float>(numpy: weights[index])!
+        }
+    }
+
+    public func saveWeights(numpyFile: String) {
+        print("saving weights to: \(numpyFile).npy")
+        var weights: Array<PythonObject> = []
+
+        for kp in self.recursivelyAllWritableKeyPaths(to: Tensor<Float>.self) {
+            weights.append(self[keyPath: kp].makeNumpyArray())
+        }
+
+        let np = Python.import("numpy")
+        np.save(numpyFile, np.array(weights))
+    }
+}
+
+// helper function to calculate accuracy of our model
+func accuracy(predictions: Tensor<Int32>, truths: Tensor<Int32>) -> Float {
+    return Tensor<Float>(predictions .== truths).mean().scalarized()
+}
+
+// helper function to print our predictions
+func printPredictions(preds: Tensor<Float>) {
+    for i in 0..<preds.shape[0] {
+        let logits = preds[i]
+        let classIdx = logits.argmax().scalar!
+        print("Example \(i) prediction: \(classNames[Int(classIdx)]) (\(softmax(logits)))")
+    }
+}

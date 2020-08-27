@@ -1,5 +1,12 @@
 import Foundation
 
+// import Python module
+#if canImport(PythonKit)
+    import PythonKit
+#else
+    import Python
+#endif
+
 // helper function to run shell command of the specified string
 // "/bin/ls".shell("-lh")
 @available(macOS 10.13, *)
@@ -19,7 +26,7 @@ public extension String {
 }
 
 // helper function to download files
-func download(from sourceString: String, to destinationString: String) {
+func downloadData(from sourceString: String, to destinationString: String) {
     let fileManager = FileManager.default
     if fileManager.fileExists(atPath: destinationString) {
         print("File \(destinationString) exists")
@@ -32,3 +39,12 @@ func download(from sourceString: String, to destinationString: String) {
     try! data.write(to: destination)
 }
 
+// helper function to inspect our data
+func inspectData(fname: String, num: Int = 5) {
+    print("inspect: \(fname)")
+    let f = Python.open(trainDataFilename)
+    for _ in 0..<num {
+        print(Python.next(f).strip())
+    }
+    f.close()
+}

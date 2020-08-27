@@ -1,10 +1,5 @@
 import Foundation
 import TensorFlow
-
-// list current content of our directory
-if #available(macOS 10.13, *) {
-    print("/bin/ls".shell("-lh"))
-}
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -17,19 +12,21 @@ import FoundationNetworking
 #endif
 print(Python.version)
 
+// list current content of our directory
+if #available(macOS 10.13, *) {
+    print("/bin/ls".shell("-lh"))
+}
+
 // download train and test dataset
 let url = "http://download.tensorflow.org/data"
 let trainDataFilename = "iris_training.csv"
 let testDataFilename = "iris_test.csv"
-download(from: url+"/"+testDataFilename, to: testDataFilename)
-download(from: url+"/"+trainDataFilename, to: trainDataFilename)
+downloadData(from: url+"/"+testDataFilename, to: testDataFilename)
+downloadData(from: url+"/"+trainDataFilename, to: trainDataFilename)
 
 // inspect the data we just donwloaded
-let f = Python.open(trainDataFilename)
-for _ in 0..<5 {
-    print(Python.next(f).strip())
-}
-f.close()
+inspectData(fname: trainDataFilename)
+inspectData(fname: testDataFilename)
 
 let featureNames = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
 let labelName = "species"
@@ -42,7 +39,7 @@ let classNames = ["Iris setosa", "Iris versicolor", "Iris virginica"]
 
 let batchSize = 32
 
-let trainingDataset: [DataBatch] = loadIrisDatasetFromCSV(contentsOf: trainDataFilename,
+let trainingDataset: [DataBatch] = loadDatasetFromCSV(contentsOf: trainDataFilename,
                                                   hasHeader: true,
                                                   featureColumns: [0, 1, 2, 3],
                                                   labelColumns: [4])
@@ -54,24 +51,24 @@ let firstTrainBatch = firstTrainEpoch.first!.collated
 let firstTrainFeatures = firstTrainBatch.features
 let firstTrainLabels = firstTrainBatch.labels
 
-print("First batch of features: \(firstTrainFeatures)")
-print("firstTrainFeatures.shape: \(firstTrainFeatures.shape)")
-print("First batch of labels: \(firstTrainLabels)")
-print("firstTrainLabels.shape: \(firstTrainLabels.shape)")
+//print("First batch of features: \(firstTrainFeatures)")
+//print("firstTrainFeatures.shape: \(firstTrainFeatures.shape)")
+//print("First batch of labels: \(firstTrainLabels)")
+//print("firstTrainLabels.shape: \(firstTrainLabels.shape)")
 
 // create TF model
-let hiddenSize: Int = 10
-var model = IrisModel()
+var model = TFModel()
 
+/*
 // Apply the model to a batch of features.
 let firstTrainPredictions = model(firstTrainFeatures)
 // our prediction
 print(firstTrainPredictions[0..<5])
 // pass through softmax
 print(softmax(firstTrainPredictions[0..<5]))
-
 print("Prediction: \(firstTrainPredictions.argmax(squeezingAxis: 1))")
 print("    Labels: \(firstTrainLabels)")
+*/
 
 // choose loss function
 let untrainedLogits = model(firstTrainFeatures)
@@ -98,17 +95,13 @@ let epochCount = 500
 var trainAccuracyResults: [Float] = []
 var trainLossResults: [Float] = []
 
-func accuracy(predictions: Tensor<Int32>, truths: Tensor<Int32>) -> Float {
-    return Tensor<Float>(predictions .== truths).mean().scalarized()
-}
-
 for (epochIndex, epoch) in trainingEpochs.prefix(epochCount).enumerated() {
     var epochLoss: Float = 0
     var epochAccuracy: Float = 0
     var batchCount: Int = 0
     for batchSamples in epoch {
         let batch = batchSamples.collated
-        let (loss, grad) = valueWithGradient(at: model) { (model: IrisModel) -> Tensor<Float> in
+        let (loss, grad) = valueWithGradient(at: model) { (model: TFModel) -> Tensor<Float> in
             let logits = model(batch.features)
             return softmaxCrossEntropy(logits: logits, labels: batch.labels)
         }
@@ -132,12 +125,12 @@ for (epochIndex, epoch) in trainingEpochs.prefix(epochCount).enumerated() {
 plot(acc: trainAccuracyResults, loss: trainLossResults, fname: "loss.pdf")
 
 // proceed with test dataset
-let testDataset = loadIrisDatasetFromCSV(
+let testDataset = loadDatasetFromCSV(
     contentsOf: testDataFilename, hasHeader: true,
     featureColumns: [0, 1, 2, 3], labelColumns: [4]).inBatches(of: batchSize)
 
 // evaluate model on test dataset
-    // NOTE: Only a single batch will run in the loop since the batchSize we're using is larger than the test set size
+// NOTE: Only a single batch will run in the loop since the batchSize we're using is larger than the test set size
 for batchSamples in testDataset {
     let batch = batchSamples.collated
     let logits = model(batch.features)
@@ -145,28 +138,28 @@ for batchSamples in testDataset {
     print("Test batch accuracy: \(accuracy(predictions: predictions, truths: batch.labels))")
 }
 
+/*
 // first batch accuracy
-
 let firstTestBatch = testDataset.first!.collated
 let firstTestBatchLogits = model(firstTestBatch.features)
 let firstTestBatchPredictions = firstTestBatchLogits.argmax(squeezingAxis: 1)
-
+print("First batch accuracy:")
 print(firstTestBatchPredictions)
 print(firstTestBatch.labels)
+*/
 
 // make predictions
-
 let unlabeledDataset: Tensor<Float> =
     [[5.1, 3.3, 1.7, 0.5],
      [5.9, 3.0, 4.2, 1.5],
      [6.9, 3.1, 5.4, 2.1]]
-
-let unlabeledDatasetPredictions = model(unlabeledDataset)
-
-for i in 0..<unlabeledDatasetPredictions.shape[0] {
-    let logits = unlabeledDatasetPredictions[i]
-    let classIdx = logits.argmax().scalar!
-    print("Example \(i) prediction: \(classNames[Int(classIdx)]) (\(softmax(logits)))")
-}
+printPredictions(preds: model(unlabeledDataset))
 
 // save our model to external file which we may use later
+let modelFileName = "model.tf"
+model.saveWeights(numpyFile: modelFileName)
+
+// let's load model back and re-do predictions
+var newModel = TFModel()
+newModel.loadWeights(numpyFile: modelFileName)
+printPredictions(preds: newModel(unlabeledDataset))
