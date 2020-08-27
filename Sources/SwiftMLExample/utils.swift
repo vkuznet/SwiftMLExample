@@ -42,7 +42,7 @@ func downloadData(from sourceString: String, to destinationString: String) {
 // helper function to inspect our data
 func inspectData(fname: String, num: Int = 5) {
     print("inspect: \(fname)")
-    let f = Python.open(trainDataFilename)
+    let f = Python.open(fname)
     for _ in 0..<num {
         print(Python.next(f).strip())
     }

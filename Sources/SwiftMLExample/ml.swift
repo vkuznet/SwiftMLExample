@@ -76,6 +76,8 @@ struct TFModel: Layer {
 
 // saving layer protocol weights, see
 // https://gist.github.com/kongzii/62b9d978a6536bb97095ed3fb74e30fd
+// later we should switch to Checkpoints Reader/Writer, see
+// https://github.com/tensorflow/swift-models/tree/master/Checkpoints
 extension Layer {
     mutating public func loadWeights(numpyFile: String) {
         print("loading weights from: \(numpyFile).npy")
@@ -106,7 +108,7 @@ func accuracy(predictions: Tensor<Int32>, truths: Tensor<Int32>) -> Float {
 }
 
 // helper function to print our predictions
-func printPredictions(preds: Tensor<Float>) {
+func printPredictions(classNames: [String], preds: Tensor<Float>) {
     for i in 0..<preds.shape[0] {
         let logits = preds[i]
         let classIdx = logits.argmax().scalar!
