@@ -5,6 +5,9 @@ import TensorFlow
 if #available(macOS 10.13, *) {
     print("/bin/ls".shell("-lh"))
 }
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 // import Python module
 #if canImport(PythonKit)
@@ -13,11 +16,6 @@ if #available(macOS 10.13, *) {
     import Python
 #endif
 print(Python.version)
-/* example of loading python modules
-public let np = Python.import("numpy")
-let npArray = np.array([1,2,3,4])
-print(npArray)
-*/
 
 // download train and test dataset
 let url = "http://download.tensorflow.org/data"
