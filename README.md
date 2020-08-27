@@ -41,3 +41,6 @@ swift build --configuration release
 # grab new executable from release area and put it into provide path
 cp .build/release/swift-ml /path
 ```
+
+Further customization can be done using swift
+[Mint](https://github.com/yonaskolb/Mint) package.
