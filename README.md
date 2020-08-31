@@ -32,6 +32,9 @@ swift run swift-ml train -e 300 --batch-size 64 --model-filename model.tf
 # run test ML action, i.e. load the model and make predictions
 swift run swift-ml test --model-filename model.tf
 
+# run MNIST training
+swift run swift-ml mnist
+
 # clean-up our build
 swift package clean
 
