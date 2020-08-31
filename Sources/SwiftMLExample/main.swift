@@ -15,6 +15,8 @@ struct SwiftML: ParsableCommand {
             train(epochs ?? 500, batchSize ?? 32, modelFilename ?? "")
         } else if action == "test" {
             test(modelFilename ?? "")
+        } else if action == "mnist" {
+            trainMNIST()
         } else {
             print("unsupported action \(action)")
         }
