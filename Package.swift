@@ -15,7 +15,10 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.2.0"),
         .package(url: "https://github.com/mxcl/Path.swift", from: "1.2.0"),
         .package(url: "https://github.com/JustHTTP/Just", from: "0.7.2"),
-        .package(url: "https://github.com/tensorflow/swift-models", .revision("3acbabd23a8d9b09aaf6d3c38391d0cbed7ce7b9")),
+        //.package(url: "https://github.com/tensorflow/swift-models", .revision("3acbabd23a8d9b09aaf6d3c38391d0cbed7ce7b9")),
+        // example of using local package, for that we need its location
+        // and git revision hash string
+        .package(url: "../tmp/swift-models", .revision("afc34e82633896d0e482243db732e1e79be6b520")),
     ],
     targets: [
         .target(
