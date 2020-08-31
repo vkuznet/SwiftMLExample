@@ -53,4 +53,9 @@ func trainMNIST() {
       callbacks: [trainingProgress.update])
 
     try! trainingLoop.fit(&classifier, epochs: epochCount, on: device)
+
+    // plot our accuracies and losses
+    let acc = trainingProgress.accuracies
+    let loss = trainingProgress.losses
+    plot(acc: acc, loss: loss, fname: "mnist.pdf")
 }
